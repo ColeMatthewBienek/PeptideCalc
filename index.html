@@ -55,6 +55,7 @@
                 <select id="massUnit" name="massUnit" aria-label="Vial amount unit">
                   <option value="mg" selected>mg</option>
                   <option value="mcg">mcg</option>
+                  <option value="iu">IU</option>
                 </select>
               </div>
             </label>
@@ -79,24 +80,6 @@
               </div>
             </label>
 
-            <label class="field iu-field" id="iuField" hidden>
-              <span>IU potency</span>
-              <div class="input-row">
-                <input
-                  id="iuPerMg"
-                  name="iuPerMg"
-                  inputmode="decimal"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  placeholder="Example: 3"
-                  aria-describedby="iuHelp"
-                >
-                <span class="unit-lock">IU/mg</span>
-              </div>
-              <small id="iuHelp">Required for IU because IU is compound-specific.</small>
-            </label>
-
             <label class="field">
               <span>Syringe scale</span>
               <div class="input-row">
@@ -117,12 +100,33 @@
                 >
               </div>
             </label>
+
+            <label class="field">
+              <span>IU conversion</span>
+              <div class="input-row">
+                <input
+                  id="iuPerMg"
+                  name="iuPerMg"
+                  inputmode="decimal"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value="3"
+                  aria-describedby="iuHelp"
+                >
+                <span class="unit-lock">IU/mg</span>
+              </div>
+              <small id="iuHelp">Defaults to somatropin: 1 mg = 3 IU. Change only if your source specifies a different conversion.</small>
+            </label>
           </div>
 
           <div class="preset-row" aria-label="Quick presets">
             <button type="button" data-water="1">1 mL water</button>
             <button type="button" data-water="2">2 mL water</button>
             <button type="button" data-water="3">3 mL water</button>
+            <button type="button" data-mass="30" data-mass-unit="iu">30 IU vial</button>
+            <button type="button" data-mass="45" data-mass-unit="iu">45 IU vial</button>
+            <button type="button" data-mass="60" data-mass-unit="iu">60 IU vial</button>
             <button type="button" data-dose="100">100 mcg</button>
             <button type="button" data-dose="250">250 mcg</button>
             <button type="button" data-dose="500">500 mcg</button>
@@ -177,8 +181,8 @@
       <section class="formula-panel" aria-label="Formula explanation">
         <h2>Formula</h2>
         <div class="formula-grid">
-          <code>total mcg = vial amount x 1000</code>
-          <code>IU dose mcg = IU x 1000 / IU per mg</code>
+          <code>mg to mcg = mg x 1000</code>
+          <code>IU mcg = IU x 1000 / IU per mg</code>
           <code>mcg/mL = total mcg / water mL</code>
           <code>dose mL = dose mcg / mcg per mL</code>
           <code>syringe units = dose mL x units per mL</code>
@@ -190,7 +194,7 @@
         <ul>
           <li>This is a math calculator, not a medical device or medical guidance.</li>
           <li>It does not recommend compounds, doses, schedules, protocols, or routes.</li>
-          <li>IU is not universal. Enter the exact IU per mg value from a verified source.</li>
+          <li>IU mode defaults to the common somatropin standard: 1 mg = 3 IU.</li>
           <li>It does not know your health status, vial quality, sterility, or legal context.</li>
           <li>Always verify concentration, units, syringe markings, and decimal placement independently.</li>
           <li>If a result looks surprising, stop and recalculate from first principles.</li>

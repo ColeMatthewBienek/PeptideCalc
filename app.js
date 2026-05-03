@@ -1,10 +1,12 @@
+const SOMATROPIN_IU_PER_MG = 3;
+
 const defaults = {
   mass: 10,
   massUnit: "mg",
   water: 2,
   dose: 250,
   doseUnit: "mcg",
-  iuPerMg: "",
+  iuPerMg: SOMATROPIN_IU_PER_MG,
   syringe: "100",
   customUnits: 100
 };
@@ -16,7 +18,6 @@ const elements = {
   water: document.querySelector("#water"),
   dose: document.querySelector("#dose"),
   doseUnit: document.querySelector("#doseUnit"),
-  iuField: document.querySelector("#iuField"),
   iuPerMg: document.querySelector("#iuPerMg"),
   syringe: document.querySelector("#syringe"),
   customUnits: document.querySelector("#customUnits"),
@@ -38,18 +39,11 @@ function numberFromInput(input) {
   return Number(input.value);
 }
 
-function toMcg(value, unit) {
-  return unit === "mg" ? value * 1000 : value;
-}
-
-function doseToMcg(value, unit, iuPerMg) {
+function toMcg(value, unit, iuPerMg) {
   if (unit === "iu") {
-    if (!Number.isFinite(iuPerMg) || iuPerMg <= 0) {
-      return Number.NaN;
-    }
     return value * (1000 / iuPerMg);
   }
-  return toMcg(value, unit);
+  return unit === "mg" ? value * 1000 : value;
 }
 
 function syringeUnitsPerMl() {
@@ -84,8 +78,8 @@ function validate(values) {
     errors.push("Desired dose must be greater than zero.");
   }
 
-  if (values.doseUnit === "iu" && (!Number.isFinite(values.iuPerMg) || values.iuPerMg <= 0)) {
-    errors.push("IU dosing requires a valid IU per mg potency value.");
+  if (values.usesIu && (!Number.isFinite(values.iuPerMg) || values.iuPerMg <= 0)) {
+    errors.push("IU conversion must be greater than zero.");
   }
 
   if (!Number.isFinite(values.unitsPerMl) || values.unitsPerMl <= 0) {
@@ -100,17 +94,16 @@ function validate(values) {
 }
 
 function calculate() {
-  const totalMcg = toMcg(numberFromInput(elements.mass), elements.massUnit.value);
+  const iuPerMg = numberFromInput(elements.iuPerMg);
+  const totalMcg = toMcg(numberFromInput(elements.mass), elements.massUnit.value, iuPerMg);
   const waterMl = numberFromInput(elements.water);
   const doseUnit = elements.doseUnit.value;
   const rawDose = numberFromInput(elements.dose);
-  const iuPerMg = numberFromInput(elements.iuPerMg);
-  const doseMcg = doseToMcg(rawDose, doseUnit, iuPerMg);
+  const doseMcg = toMcg(rawDose, doseUnit, iuPerMg);
   const unitsPerMl = syringeUnitsPerMl();
-  const values = { totalMcg, waterMl, rawDose, doseMcg, doseUnit, iuPerMg, unitsPerMl };
+  const usesIu = elements.massUnit.value === "iu" || doseUnit === "iu";
+  const values = { totalMcg, waterMl, rawDose, doseMcg, usesIu, iuPerMg, unitsPerMl };
 
-  elements.iuField.hidden = doseUnit !== "iu";
-  elements.iuPerMg.disabled = doseUnit !== "iu";
   elements.customUnits.disabled = elements.syringe.value !== "custom";
 
   const errors = validate(values);
@@ -152,8 +145,12 @@ function calculate() {
   if (doseFraction > 0.25) {
     warnings.push("Single dose uses more than 25% of the vial. Verify your dose input.");
   }
-  if (doseUnit === "iu") {
-    warnings.push(`IU conversion uses ${formatNumber(iuPerMg, 2)} IU/mg. Verify that potency first.`);
+  if (usesIu) {
+    const iuMessage =
+      iuPerMg === SOMATROPIN_IU_PER_MG
+        ? "IU conversion uses the common somatropin standard: 1 mg = 3 IU."
+        : `IU conversion uses your custom value: 1 mg = ${formatNumber(iuPerMg, 2)} IU.`;
+    warnings.push(iuMessage);
   }
 
   elements.statusBox.classList.remove("error");
@@ -184,7 +181,7 @@ function reset() {
   elements.water.value = String(defaults.water);
   elements.dose.value = String(defaults.dose);
   elements.doseUnit.value = defaults.doseUnit;
-  elements.iuPerMg.value = defaults.iuPerMg;
+  elements.iuPerMg.value = String(defaults.iuPerMg);
   elements.syringe.value = defaults.syringe;
   elements.customUnits.value = String(defaults.customUnits);
   calculate();
@@ -194,10 +191,14 @@ elements.form.addEventListener("input", calculate);
 elements.form.addEventListener("change", calculate);
 elements.resetButton.addEventListener("click", reset);
 
-document.querySelectorAll("[data-water], [data-dose]").forEach((button) => {
+document.querySelectorAll("[data-water], [data-mass], [data-dose]").forEach((button) => {
   button.addEventListener("click", () => {
     if (button.dataset.water !== undefined) {
       elements.water.value = button.dataset.water;
+    }
+    if (button.dataset.mass !== undefined) {
+      elements.mass.value = button.dataset.mass;
+      elements.massUnit.value = button.dataset.massUnit ?? "mg";
     }
     if (button.dataset.dose !== undefined) {
       elements.dose.value = button.dataset.dose;
