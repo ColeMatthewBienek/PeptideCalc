@@ -1,5 +1,4 @@
 # PeptideCalc
-
 A private, static, browser-only peptide reconstitution math calculator.
 
 No backend. No accounts. No API calls. No tracking. No build step. Open the file and calculate.
