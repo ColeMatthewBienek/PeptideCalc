@@ -4,6 +4,7 @@ const defaults = {
   water: 2,
   dose: 250,
   doseUnit: "mcg",
+  iuPerMg: "",
   syringe: "100",
   customUnits: 100
 };
@@ -15,6 +16,8 @@ const elements = {
   water: document.querySelector("#water"),
   dose: document.querySelector("#dose"),
   doseUnit: document.querySelector("#doseUnit"),
+  iuField: document.querySelector("#iuField"),
+  iuPerMg: document.querySelector("#iuPerMg"),
   syringe: document.querySelector("#syringe"),
   customUnits: document.querySelector("#customUnits"),
   resetButton: document.querySelector("#resetButton"),
@@ -37,6 +40,16 @@ function numberFromInput(input) {
 
 function toMcg(value, unit) {
   return unit === "mg" ? value * 1000 : value;
+}
+
+function doseToMcg(value, unit, iuPerMg) {
+  if (unit === "iu") {
+    if (!Number.isFinite(iuPerMg) || iuPerMg <= 0) {
+      return Number.NaN;
+    }
+    return value * (1000 / iuPerMg);
+  }
+  return toMcg(value, unit);
 }
 
 function syringeUnitsPerMl() {
@@ -67,15 +80,19 @@ function validate(values) {
     errors.push("Water added must be greater than zero.");
   }
 
-  if (!Number.isFinite(values.doseMcg) || values.doseMcg <= 0) {
+  if (!Number.isFinite(values.rawDose) || values.rawDose <= 0) {
     errors.push("Desired dose must be greater than zero.");
+  }
+
+  if (values.doseUnit === "iu" && (!Number.isFinite(values.iuPerMg) || values.iuPerMg <= 0)) {
+    errors.push("IU dosing requires a valid IU per mg potency value.");
   }
 
   if (!Number.isFinite(values.unitsPerMl) || values.unitsPerMl <= 0) {
     errors.push("Syringe scale must be greater than zero.");
   }
 
-  if (values.doseMcg > values.totalMcg) {
+  if (Number.isFinite(values.doseMcg) && values.doseMcg > values.totalMcg) {
     errors.push("Desired dose is larger than the whole vial.");
   }
 
@@ -85,12 +102,18 @@ function validate(values) {
 function calculate() {
   const totalMcg = toMcg(numberFromInput(elements.mass), elements.massUnit.value);
   const waterMl = numberFromInput(elements.water);
-  const doseMcg = toMcg(numberFromInput(elements.dose), elements.doseUnit.value);
+  const doseUnit = elements.doseUnit.value;
+  const rawDose = numberFromInput(elements.dose);
+  const iuPerMg = numberFromInput(elements.iuPerMg);
+  const doseMcg = doseToMcg(rawDose, doseUnit, iuPerMg);
   const unitsPerMl = syringeUnitsPerMl();
-  const values = { totalMcg, waterMl, doseMcg, unitsPerMl };
-  const errors = validate(values);
+  const values = { totalMcg, waterMl, rawDose, doseMcg, doseUnit, iuPerMg, unitsPerMl };
 
+  elements.iuField.hidden = doseUnit !== "iu";
+  elements.iuPerMg.disabled = doseUnit !== "iu";
   elements.customUnits.disabled = elements.syringe.value !== "custom";
+
+  const errors = validate(values);
 
   if (errors.length > 0) {
     renderError(errors);
@@ -129,6 +152,9 @@ function calculate() {
   if (doseFraction > 0.25) {
     warnings.push("Single dose uses more than 25% of the vial. Verify your dose input.");
   }
+  if (doseUnit === "iu") {
+    warnings.push(`IU conversion uses ${formatNumber(iuPerMg, 2)} IU/mg. Verify that potency first.`);
+  }
 
   elements.statusBox.classList.remove("error");
   elements.statusBox.textContent =
@@ -158,6 +184,7 @@ function reset() {
   elements.water.value = String(defaults.water);
   elements.dose.value = String(defaults.dose);
   elements.doseUnit.value = defaults.doseUnit;
+  elements.iuPerMg.value = defaults.iuPerMg;
   elements.syringe.value = defaults.syringe;
   elements.customUnits.value = String(defaults.customUnits);
   calculate();
@@ -174,7 +201,7 @@ document.querySelectorAll("[data-water], [data-dose]").forEach((button) => {
     }
     if (button.dataset.dose !== undefined) {
       elements.dose.value = button.dataset.dose;
-      elements.doseUnit.value = "mcg";
+      elements.doseUnit.value = button.dataset.doseUnit ?? "mcg";
     }
     calculate();
   });

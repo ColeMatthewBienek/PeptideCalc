@@ -9,7 +9,8 @@ PeptideCalc converts user-provided values into clean, readable reconstitution ma
 
 - vial amount in `mg` or `mcg`
 - water added in `mL`
-- desired dose in `mcg` or `mg`
+- desired dose in `mcg`, `mg`, or `IU`
+- IU potency as `IU per mg` when using IU dosing
 - syringe scale, including U-100, U-40, or custom units per mL
 
 It outputs:
@@ -27,6 +28,7 @@ Most peptide calculators look like abandoned forms from 2007. This one is built 
 - instant recalculation
 - mobile-first responsive layout
 - unit-aware validation
+- compound-specific IU conversion without hardcoded assumptions
 - dose percentage visualization
 - vial fill visualization
 - quick presets for common water and dose values
@@ -59,6 +61,7 @@ There is no server-side code to deploy.
 
 ```text
 total mcg = vial amount x 1000
+IU dose mcg = IU x 1000 / IU per mg
 concentration mcg/mL = total mcg / water mL
 dose mL = desired dose mcg / concentration mcg/mL
 syringe units = dose mL x units per mL
@@ -81,6 +84,24 @@ Result:
 0.05 mL x 100 = 5 U-100 units
 ```
 
+IU example:
+
+```text
+10 mg vial
+2 mL water
+2 IU desired dose
+3 IU per mg potency
+```
+
+Result:
+
+```text
+2 IU x 1000 / 3 IU per mg = 666.67 mcg
+10,000 mcg / 2 mL = 5,000 mcg/mL
+666.67 mcg / 5,000 mcg/mL = 0.133 mL
+0.133 mL x 100 = 13.3 U-100 units
+```
+
 ## Safety
 
 This is a math tool only.
@@ -94,9 +115,13 @@ It does not recommend:
 - routes
 - medical decisions
 
+IU is not universal. The calculator requires the exact `IU per mg` value because that
+relationship depends on the specific compound and source data.
+
 Reconstitution mistakes can be serious. Always verify:
 
 - mg vs. mcg
+- IU per mg
 - mL entered
 - syringe type
 - decimal placement
